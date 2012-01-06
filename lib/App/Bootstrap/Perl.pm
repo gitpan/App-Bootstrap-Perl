@@ -3,9 +3,11 @@ package App::Bootstrap::Perl;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 1;
+
+__END__
 
 =head1 NAME
 
@@ -13,8 +15,14 @@ App::Bootstrap:Perl - Bootstrap Perl inclusive CPAN from git
 
 =head1 ABOUT
 
-This is the corresponding namespace for L<bootstrap-perl>, a tool to
+This is the corresponding namespace for B<bootstrap-perl>, a tool to
 bootstrap Perl installations inclusive a CPAN environment from git.
+
+B<bootstrap-perl> can compile and setup a complete Perl environment
+from git, inclusive initial CPAN setup with distroprefs to ensure
+completely unattended installation.
+
+See L<bootstrap-perl|bootstrap-perl> for details.
 
 =head1 AUTHOR
 
