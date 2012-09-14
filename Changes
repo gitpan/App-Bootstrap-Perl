@@ -1,5 +1,8 @@
 Revision history for App-Bootstrap-Perl
 
+0.07      2012-09-14
+        - simplify path prefix back
+
 0.06      2012-09-14
         - allow to override defaults from --perlformance
         - do not throw away versions built with --blead

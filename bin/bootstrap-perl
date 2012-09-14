@@ -91,7 +91,7 @@ sub _perl_pathprefix {
         return join("-",
                     $prefixbase."/perl",
                     _perl_base_name(@_),
-                    ($blead ? $gitchangeset : $gitdescribe),
+                    $gitdescribe,
                    );
 }
 

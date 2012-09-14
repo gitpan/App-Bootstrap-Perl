@@ -1,11 +1,11 @@
 package App::Bootstrap::Perl;
-# git description: v0.05-5-g893d0ef
+# git description: v0.06-2-g9d13539
 
 BEGIN {
   $App::Bootstrap::Perl::AUTHORITY = 'cpan:SCHWIGON';
 }
 {
-  $App::Bootstrap::Perl::VERSION = '0.06';
+  $App::Bootstrap::Perl::VERSION = '0.07';
 }
 # ABSTRACT: Bootstrap Perl inclusive CPAN from git
 
