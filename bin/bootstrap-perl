@@ -48,13 +48,11 @@ my $DISTROPREFSSRC2     = "$DISTROPREFSSRCBASE/cpanpm-distroprefs/renormalist/di
 my $DISTROPREFSURL      = 'http://cpansearch.perl.org/src/ANDK/CPAN-1.9800/distroprefs/';
 my $DISTROPREFSDIR      = $prefixbase."/cpan/prefs"; # TODO: CPAN-Config is hardwired, not yet aware of $prefixbase!
 
-# Perl::Formance modules and some explicit dependencies
-my @default_modules = (qw( ));
-
-# http://perlformance.net/CPAN/
-my @default_mirrors = (qw(
-                         http://rub.de/ftp/pub/CPAN/
-                        ));
+# defaults
+my @default_runscripts = ();
+my @default_runargs    = ();
+my @default_modules    = ();
+my @default_mirrors    = (qw( http://rub.de/ftp/pub/CPAN/ ));
 
 sub print_and_system {
         my ($cmd) = @_;
@@ -69,7 +67,7 @@ sub print_and_qx {
 }
 
 sub _perl_base_name {
-        my ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitversion, $exe_suffixes, $blead) = @_;
+        my ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, $gitchangeset, $exe_suffixes, $blead) = @_;
         return join("-",
                     ($blead      ? "blead" : "$perl_revision.$perl_version"),
                     ($usethreads ? "" : "no" )."thread",
@@ -79,7 +77,7 @@ sub _perl_base_name {
 }
 
 sub _perl_exe_name {
-        my ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitversion, $exe_suffixes, $blead) = @_;
+        my ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, $gitchangeset, $exe_suffixes, $blead) = @_;
 
         return join("-",
                     "perl",
@@ -88,21 +86,16 @@ sub _perl_exe_name {
 }
 
 sub _perl_pathprefix {
-        my ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitversion, $exe_suffixes, $blead) = @_;
+        my ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, $gitchangeset, $exe_suffixes, $blead) = @_;
 
         return join("-",
                     $prefixbase."/perl",
                     _perl_base_name(@_),
-                    ($blead ? () : $gitversion),
+                    ($blead ? $gitchangeset : $gitdescribe),
                    );
 }
 
 # ========== getopt ==========
-
-print "\n";
-print "============================================================\n";
-print "Bootstrap Perl\n";
-print "============================================================\n";
 
 my $ok = GetOptions (
                      "prefix=s"     => \$prefix,
@@ -131,9 +124,16 @@ my $ok = GetOptions (
                     );
 
 if ($help) {
-        print "\nPlease see 'perldoc bootstrap-perl' for help.\n";
-        exit 0;
+        exec("perldoc", "bootstrap-perl") or do {
+                print "\nPlease see 'perldoc bootstrap-perl' for help.\n";
+                exit 0;
+        }
 }
+
+print "\n";
+print "============================================================\n";
+print "Bootstrap Perl\n";
+print "============================================================\n";
 
 # --perlformance is a shortcut for
 #   -M Digest::SHA1,\
@@ -153,31 +153,33 @@ if ($help) {
 #                       RGARCIA/Safe-2.32.tar.gz
 #                       RGARCIA/Safe-2.33.tar.gz
 if ($perlformance or $perlformance_report) {
-        @modules = qw( Digest::SHA1
-                       DB_File
-                       Safe
-                       Module::Build
-                       Mail::DKIM
-                       IP::Country
-                       Net::Ident
-                       IO::Socket::INET6
-                       Encode::Detect
-                       Benchmark::Perl::Formance
-                       Tapper::TestSuite::Benchmark::Perl::Formance
-                       Task::PerlFormance
-                    );
-        @mirrors = qw(http://perlformance.net/PINTO/perlformance/);
-        @runscripts = qw(benchmark-perlformance);
+        @default_modules = qw( Digest::SHA1
+                               DB_File
+                               Safe
+                               Module::Build
+                               Mail::DKIM
+                               IP::Country
+                               Net::Ident
+                               IO::Socket::INET6
+                               Encode::Detect
+                               Benchmark::Perl::Formance
+                               Tapper::TestSuite::Benchmark::Perl::Formance
+                               Task::PerlFormance
+                            );
+        @default_mirrors = qw(http://perlformance.net/PINTO/perlformance/);
+        @default_runscripts = qw(benchmark-perlformance);
+        @default_runargs    = qw(--plugins=ALL);
 }
 if ($perlformance_report) {
-        @runscripts = qw(tapper-testsuite-benchmark-perlformance);
-        @runargs    = qw(--plugins=ALL);
+        @default_runscripts = qw(tapper-testsuite-benchmark-perlformance);
+        @default_runargs    = qw(--plugins=ALL);
 }
 
 # modules/mirros/runscripts can be comma-separated
-my @MODULES     = map { chomp; $_ } map { split(qr/,/, $_) } (@modules ? @modules : @default_modules);
-my @CPANMIRRORS = map { chomp; $_ } map { split(qr/,/, $_) } (@mirrors ? @mirrors : @default_mirrors);
-my @RUNSCRIPTS  = map { chomp; $_ } map { split(qr/,/, $_) } @runscripts;
+my @MODULES     = map { chomp; $_ } map { split(qr/,/, $_) } (@modules    ? @modules    : @default_modules);
+my @CPANMIRRORS = map { chomp; $_ } map { split(qr/,/, $_) } (@mirrors    ? @mirrors    : @default_mirrors);
+my @RUNSCRIPTS  = map { chomp; $_ } map { split(qr/,/, $_) } (@runscripts ? @runscripts : @default_runscripts);
+my @RUNARGS     = map { chomp; $_ } map { split(qr/;/, $_) } (@runargs    ? @runargs    : @default_runargs);
 my @EXESUFFIXES = sort map { chomp; $_ } map { split(qr/,/, $_) } @exesuffixes;
 my $CONFARGS    = join " ", map { chomp; $_ } @confargs; # repeatable, but no comma-separate
 
@@ -276,8 +278,8 @@ unless (defined $perl_revision && defined $perl_version)
         exit 1;
 }
 
-my $codespeed_executable =            _perl_exe_name  ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, \@EXESUFFIXES, $blead);
-my $PREFIX               = $prefix || _perl_pathprefix($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, \@EXESUFFIXES, $blead);
+my $codespeed_executable =            _perl_exe_name  ($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, $gitchangeset, \@EXESUFFIXES, $blead);
+my $PREFIX               = $prefix || _perl_pathprefix($perl_revision, $perl_version, $perl_subversion, $usethreads, $bit64, $gitdescribe, $gitchangeset, \@EXESUFFIXES, $blead);
 my $USETHREADS           = $usethreads ? "-Dusethreads"  : "";
 my $BIT64                = $bit64      ? "-Duse64bitall" : "";
 
@@ -293,7 +295,7 @@ print "  PREFIX:         $PREFIX\n\n";
 print "  configureargs:  ".join("\n                  ", @confargs)."\n\n";
 print "  CPAN mirrors:   ".join("\n                  ", @CPANMIRRORS)."\n\n";
 print "  modules:        ".join("\n                  ", @MODULES)."\n\n";
-print "  scripts:        ".join("\n                  ", map { $_ ." ".join(" ", @runargs) } @RUNSCRIPTS)."\n\n";
+print "  scripts:        ".join("\n                  ", map { $_ ." ".join(" ", @RUNARGS) } @RUNSCRIPTS)."\n\n";
 print "============================================================\n\n";
 
 if ($blead and $perl_version % 2 == 0) {
@@ -323,15 +325,10 @@ if ( -e $perl_gitchangeset ) {
         chomp $existing_version;
 }
 
-if ( ! -e $perl_codespeed or
-     ( $blead and $existing_version ne $gitchangeset ) )
+if ( ! -e $perl_codespeed )
 {
         print "*** BUILD perl\n";
         # ========== configure ==========
-
-        if ($blead and -d $PREFIX) {
-                print_and_system "rm -f '$PREFIX'";
-        }
 
         print_and_system "cd $build_path_perl; sh Configure -de -Dusedevel $USETHREADS $BIT64 $CONFARGS -Dprefix=$PREFIX";
 
@@ -537,7 +534,7 @@ Install a threaded 64bit Perl using current "blead"
 from git with CPAN config into a path like
 C</opt/perl-5.15-thread-64bit-v5.15.5-258-ge7d0a3f>:
 
-  $ bootstrap-perl
+  $ bootstrap-perl [ <OPTIONS> ]
 
 =head2 Specify git revisions
 
@@ -641,6 +638,10 @@ development line besides the yearly segmented graphs.
 It is only possible to use C<--blead> with development versions in
 order to create consistent results from only the blead branch.
 
+Note that C<--blead> does not set a version but only modifies the
+formats of path prefix and how the version is reported to
+Perl::Formance; it is B<not> the same as C<--version blead>.
+
 =head3 configure CPAN and modules
 
 Configure CPAN to use these mirrors:
@@ -664,10 +665,12 @@ Install these modules from CPAN:
 Run these scripts relative to built <PREFIX>/bin/:
 
   $ bootstrap-perl --run tapper-testsuite-benchmark-perlformance
-  $ bootstrap-perl --run tapper-testsuite-benchmark-perlformance --runargs="--plugins=ALL"
+  $ bootstrap-perl --run tapper-testsuite-benchmark-perlformance --runargs="--plugins=Fib,FibOO;-vvv"
   $ bootstrap-perl -r tapper-testsuite-benchmark-perlformance -r primes.pl
 
-(Option can be repeated and allow comma separated lists.)
+(Option C<--run> can be repeated and allows comma separated lists.)
+
+(Option C<--runargs> can be repeated and allows semicolon[sic] separated lists.)
 
 =head3 run Perl::Formance benchmarks
 
@@ -676,7 +679,13 @@ Benchmark::Perl::Formance do:
 
   $ bootstrap-perl --perlformance
 
-This is a shortcut for C<-M Digest::SHA1,DB_File,Mail::DKIM,IP::Country,Net::Ident,IO::Socket::INET6,Encode::Detect,Benchmark::Perl::Formance,Task::PerlFormance,Tapper::TestSuite::Benchmark::Perl::Formance> C<-m http://perlformance.net/CPAN/> C<--run benchmark-perlformance> C<--runargs=--plugins=ALL>.
+This sets defaults equivalent to for C<-M Digest::SHA1,DB_File,Mail::DKIM,IP::Country,Net::Ident,IO::Socket::INET6,Encode::Detect,Benchmark::Perl::Formance,Task::PerlFormance,Tapper::TestSuite::Benchmark::Perl::Formance> C<-m http://perlformance.net/PINTO/perlformance/> C<--run benchmark-perlformance> C<--runargs=--plugins=ALL>.
+
+You can override parts of that like this:
+
+  $ bootstrap-perl --perlformance --runargs="--plugins=Fib,FibOO"
+
+to specify different set ob benchmarks.
 
 =head2 Unified installation prefix schema
 
